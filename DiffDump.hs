@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 
 import System.Console.CmdArgs
   ( cmdArgs
@@ -77,7 +78,6 @@ import Control.Concurrent.ParallelIO.Local
 import Control.Exception
   ( finally
   , bracket
-  , catch
   , throwIO
   )
 import System.IO.Error
@@ -101,6 +101,9 @@ import Paths_diffdump
   )
 import Data.Version
   ( showVersion
+  )
+import System.IO.Error
+  ( catchIOError  -- Use this instead of 'catch' to support GHC 7.6.1 and 7.4.x
   )
 
 data DiffDump = DiffDump {
@@ -324,9 +327,9 @@ runDiff cfg outputDir p1 p2 = do
 createUniqueDirectory :: Int -> FilePath -> IO FilePath
 createUniqueDirectory n p = do
       (createDirectory tmp >> return tmp)
-         `catch` (\e -> if isAlreadyExistsError e
-                        then createUniqueDirectory (succ n) p
-                        else throwIO e)
+         `catchIOError` (\e -> if isAlreadyExistsError e
+                               then createUniqueDirectory (succ n) p
+                               else throwIO e)
   where
     tmp = p ++ show n
 
