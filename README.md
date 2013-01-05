@@ -1,7 +1,7 @@
 Unit-testing with diffdump and patchdump
 ========================================
 
-[![Build Status](https://secure.travis-ci.org/garious/DiffDump.png?branch=master)](http://travis-ci.org/garious/DiffDump)
+[![Build Status](https://secure.travis-ci.org/garious/DiffDump.png)](http://travis-ci.org/garious/DiffDump)
 
 Introduction
 ------------
