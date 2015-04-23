@@ -39,10 +39,12 @@ import System.Process.ByteString
   ( readProcessWithExitCode
   )
 import System.Directory
-  ( createDirectoryIfMissing
+  ( canonicalizePath
+  , createDirectoryIfMissing
   , createDirectory
   , doesFileExist
   , doesDirectoryExist
+  , findExecutable
   , removeDirectoryRecursive
   , getTemporaryDirectory
   , getCurrentDirectory
@@ -244,7 +246,8 @@ parallelMain as threadPool = do
         when (verbose as) $ do
           hPutStrLn stderr $ "diffdump: Comparing files... "
 
-        runDiff diffCfg outputDir "a" "b"
+        diffPath' <- validateExePath (diffPath diffCfg)
+        runDiff diffCfg{diffPath=diffPath'} outputDir "a" "b"
 
     diffMaybe <- finally diffdump $
         unless (keep_files as) $ do
@@ -267,6 +270,20 @@ mkDumpCfg :: String -> String -> [String] -> DumpCfg
 mkDumpCfg "" "" = DumpCfg "cat"  -- Default command, plus custom options
 mkDumpCfg ""  x = DumpCfg x      -- --cmd as command, plus custom options
 mkDumpCfg  x  _ = DumpCfg x      -- Override all defaults
+
+validateExePath :: FilePath -> IO FilePath
+validateExePath p = do
+    exists <- doesFileExist p
+    if not exists
+      then do
+        maybePath <- findExecutable p
+        case maybePath of
+          Nothing -> do
+            hPutStrLn stderr $ "diffdump: Executable not found '" ++ p ++ "'."
+            exitFailure
+          Just p' -> return p'
+      else
+        return p
 
 createTempDirectory :: Bool -> DirPath -> IO ()
 createTempDirectory frce p = do
@@ -319,9 +336,10 @@ dumpObjFiles aDir bDir (cfg1, cfg2) oldPath newPath = do
 
 runDiff :: DiffCfg -> DirPath -> FilePath -> FilePath -> IO (Maybe B.ByteString)
 runDiff cfg outputDir p1 p2 = do
+   absDiffPath <- canonicalizePath (diffPath cfg)
    bracket getCurrentDirectory setCurrentDirectory $ const $ do
        setCurrentDirectory outputDir
-       (exitCode, s, err) <- readProcessWithExitCode (diffPath cfg) (diffArgs cfg ++ [p1, p2]) ""
+       (exitCode, s, err) <- readProcessWithExitCode absDiffPath (diffArgs cfg ++ [p1, p2]) ""
        B.hPutStr stderr err
        return $ case exitCode of
           ExitSuccess -> Nothing
