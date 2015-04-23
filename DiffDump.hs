@@ -8,12 +8,14 @@ import System.Console.CmdArgs
   , opt  -- optional
   , (&=)
   , def
+  , explicit
   , typ
   , typFile
   , typDir
   , argPos
   , summary
   , help
+  , helpArg
   , name
   , Data
   , Typeable
@@ -167,6 +169,7 @@ diffDumpOpts defOutdir = DiffDump {
    , keep_files   = def                                  &= help "Keep intermediary files."
    , succeed_on_diff = def                               &= help "Unlike diff, return zero exit code when there are differences."
    } &= summary ("diffdump " ++ showVersion version)
+     &= helpArg [explicit, name "h", name "help"]
 
 data DumpCfg = DumpCfg {
     dumpPath        :: FilePath
